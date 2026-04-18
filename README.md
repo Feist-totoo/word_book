@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📖 墨墨背单词
+# 📖 word_book (个人考研用)
 
 **基于艾宾浩斯遗忘曲线的考研词汇 App**
 
