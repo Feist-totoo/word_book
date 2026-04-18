@@ -106,7 +106,7 @@ new  ──[首次学习]──▶  learning  ──[多次牢记]──▶  kno
 ```bash
 # 1. 克隆仓库
 git clone https://github.com/your-username/vocab-app.git
-cd vocab-app
+cd word_book
 
 # 2. 安装依赖
 npm install
