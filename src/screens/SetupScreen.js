@@ -3,18 +3,24 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   SafeAreaView, ScrollView, Alert,
 } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
+import { useDimensions } from '../utils/responsive';
 import { setupPlan, getPlanInfo } from '../database/db';
 
 const DAILY_OPTIONS = [10, 20, 30, 50, 100];
 
 export default function SetupScreen({ navigation, route }) {
+  const { colors } = useTheme();
+  const layout = useDimensions();
   const isReset = route?.params?.reset;
   const [selected, setSelected] = useState(20);
   const [totalWords, setTotalWords] = useState(6276);
   const [loading, setLoading] = useState(false);
 
+  const s = makeStyles(colors, layout);
+
   useEffect(() => {
-    getPlanInfo().then((info) => setTotalWords(info.newCount || info.total));
+    getPlanInfo().then(info => setTotalWords(info.newCount || info.total));
   }, []);
 
   const estimatedDays = Math.ceil(totalWords / selected);
@@ -23,166 +29,187 @@ export default function SetupScreen({ navigation, route }) {
     setLoading(true);
     try {
       await setupPlan(selected);
-      // Navigate to main app
       navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
-    } catch (e) {
+    } catch {
       Alert.alert('错误', '创建计划失败，请重试');
     } finally {
       setLoading(false);
     }
   };
 
+  const rules = [
+    { label: '每日目标',  value: `${selected} 词/天` },
+    { label: '计划周期',  value: `约 ${estimatedDays} 天` },
+    { label: '遗忘处理',  value: '当日重新复习' },
+    { label: '模糊处理',  value: '1–2 天后复习' },
+    { label: '牢记处理',  value: '40–60 天后复习' },
+  ];
+
+  const content = (
+    <>
+      <View style={s.header}>
+        <Text style={s.emoji}>📚</Text>
+        <Text style={s.title}>{isReset ? '重新制定计划' : '制定学习计划'}</Text>
+        <Text style={s.subtitle}>
+          词库共 <Text style={s.accent}>{totalWords.toLocaleString()}</Text> 个单词
+        </Text>
+      </View>
+
+      <View style={s.section}>
+        <Text style={s.sectionLabel}>每日背单词数量</Text>
+        <View style={s.optionGrid}>
+          {DAILY_OPTIONS.map(n => (
+            <TouchableOpacity
+              key={n}
+              style={[s.optionBtn, selected === n && s.optionBtnActive]}
+              onPress={() => setSelected(n)}
+            >
+              <Text style={[s.optionNum, selected === n && s.optionNumActive]}>{n}</Text>
+              <Text style={[s.optionUnit, selected === n && s.optionUnitActive]}>词/天</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={s.previewCard}>
+        {rules.map((r, i) => (
+          <View key={i}>
+            {i > 0 && <View style={s.divider} />}
+            <View style={s.previewRow}>
+              <Text style={s.previewLabel}>{r.label}</Text>
+              <Text style={s.previewValue}>{r.value}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      <View style={s.note}>
+        <Text style={s.noteText}>
+          💡 基于艾宾浩斯遗忘曲线：牢记的单词将在 40–60 天后自动安排复习，确保长期记忆。
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        style={[s.startBtn, loading && s.startBtnDisabled]}
+        onPress={handleStart}
+        disabled={loading}
+      >
+        <Text style={s.startBtnText}>{loading ? '创建中…' : '开始学习 →'}</Text>
+      </TouchableOpacity>
+    </>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.emoji}>📚</Text>
-          <Text style={styles.title}>{isReset ? '重新制定计划' : '制定学习计划'}</Text>
-          <Text style={styles.subtitle}>
-            词库共 <Text style={styles.accent}>{totalWords.toLocaleString()}</Text> 个单词
-          </Text>
+    <SafeAreaView style={s.container}>
+      {layout.landscape && layout.tablet ? (
+        // Tablet landscape: two-column
+        <View style={s.twoCol}>
+          <View style={s.colLeft}>
+            <View style={s.header}>
+              <Text style={s.emoji}>📚</Text>
+              <Text style={s.title}>{isReset ? '重新制定计划' : '制定学习计划'}</Text>
+              <Text style={s.subtitle}>
+                词库共 <Text style={s.accent}>{totalWords.toLocaleString()}</Text> 个单词
+              </Text>
+            </View>
+            <View style={s.note}>
+              <Text style={s.noteText}>
+                💡 基于艾宾浩斯遗忘曲线：牢记的单词将在 40–60 天后自动安排复习，确保长期记忆。
+              </Text>
+            </View>
+          </View>
+          <ScrollView style={s.colRight} contentContainerStyle={{ paddingBottom: 32 }}>
+            <View style={s.section}>
+              <Text style={s.sectionLabel}>每日背单词数量</Text>
+              <View style={s.optionGrid}>
+                {DAILY_OPTIONS.map(n => (
+                  <TouchableOpacity
+                    key={n}
+                    style={[s.optionBtn, selected === n && s.optionBtnActive]}
+                    onPress={() => setSelected(n)}
+                  >
+                    <Text style={[s.optionNum, selected === n && s.optionNumActive]}>{n}</Text>
+                    <Text style={[s.optionUnit, selected === n && s.optionUnitActive]}>词/天</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            <View style={s.previewCard}>
+              {rules.map((r, i) => (
+                <View key={i}>
+                  {i > 0 && <View style={s.divider} />}
+                  <View style={s.previewRow}>
+                    <Text style={s.previewLabel}>{r.label}</Text>
+                    <Text style={s.previewValue}>{r.value}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={[s.startBtn, loading && s.startBtnDisabled]}
+              onPress={handleStart}
+              disabled={loading}
+            >
+              <Text style={s.startBtnText}>{loading ? '创建中…' : '开始学习 →'}</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
-
-        {/* Daily count selector */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>每日背单词数量</Text>
-          <View style={styles.optionGrid}>
-            {DAILY_OPTIONS.map((n) => (
-              <TouchableOpacity
-                key={n}
-                style={[styles.optionBtn, selected === n && styles.optionBtnActive]}
-                onPress={() => setSelected(n)}
-              >
-                <Text style={[styles.optionText, selected === n && styles.optionTextActive]}>
-                  {n}
-                </Text>
-                <Text style={[styles.optionSub, selected === n && styles.optionSubActive]}>
-                  个/天
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Plan preview */}
-        <View style={styles.preview}>
-          <View style={styles.previewRow}>
-            <Text style={styles.previewLabel}>计划周期</Text>
-            <Text style={styles.previewValue}>
-              约 <Text style={styles.accent}>{estimatedDays}</Text> 天
-            </Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.previewRow}>
-            <Text style={styles.previewLabel}>每天用时</Text>
-            <Text style={styles.previewValue}>约 {Math.round(selected * 0.5)} 分钟</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.previewRow}>
-            <Text style={styles.previewLabel}>遗忘后复习</Text>
-            <Text style={styles.previewValue}>当日再次学习</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.previewRow}>
-            <Text style={styles.previewLabel}>模糊时复习</Text>
-            <Text style={styles.previewValue}>1~2 天后</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.previewRow}>
-            <Text style={styles.previewLabel}>熟记后复习</Text>
-            <Text style={styles.previewValue}>40~60 天后</Text>
-          </View>
-        </View>
-
-        {/* Memory curve note */}
-        <View style={styles.note}>
-          <Text style={styles.noteText}>
-            💡 基于艾宾浩斯遗忘曲线：标记"认识"的单词将在 40–60 天后自动安排复习，确保长期记忆。
-          </Text>
-        </View>
-
-        {/* Start button */}
-        <TouchableOpacity
-          style={[styles.startBtn, loading && styles.startBtnDisabled]}
-          onPress={handleStart}
-          disabled={loading}
-        >
-          <Text style={styles.startBtnText}>{loading ? '创建中...' : '开始学习 →'}</Text>
-        </TouchableOpacity>
-      </ScrollView>
+      ) : (
+        <ScrollView contentContainerStyle={s.scroll}>{content}</ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f6f8' },
-  scroll: { padding: 24, paddingBottom: 48 },
+const makeStyles = (c, layout) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.bg },
+  scroll: { padding: 24, paddingBottom: 48, alignItems: 'center' },
+
+  twoCol: { flex: 1, flexDirection: 'row' },
+  colLeft: { flex: 1, padding: 40, justifyContent: 'center' },
+  colRight: { flex: 1, padding: 24 },
 
   header: { alignItems: 'center', marginBottom: 32, marginTop: 16 },
-  emoji: { fontSize: 56, marginBottom: 12 },
-  title: { fontSize: 26, fontWeight: '700', color: '#222', marginBottom: 8 },
-  subtitle: { fontSize: 15, color: '#888' },
-  accent: { color: '#2ed573', fontWeight: '700' },
+  emoji: { fontSize: layout.tablet ? 72 : 56, marginBottom: 12 },
+  title: { fontSize: layout.tablet ? 30 : 26, fontWeight: '700', color: c.text, marginBottom: 8 },
+  subtitle: { fontSize: 15, color: c.textMuted },
+  accent: { color: c.primary, fontWeight: '700' },
 
-  section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 14, color: '#aaa', marginBottom: 12, fontWeight: '600', letterSpacing: 0.5 },
+  section: { width: '100%', marginBottom: 24 },
+  sectionLabel: { fontSize: 13, color: c.textMuted, marginBottom: 14, fontWeight: '600', letterSpacing: 0.5 },
 
   optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   optionBtn: {
-    width: '18%',
-    minWidth: 56,
-    aspectRatio: 1,
-    borderRadius: 14,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    width: 72, height: 72, borderRadius: 16,
+    backgroundColor: c.card, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: c.border,
   },
-  optionBtnActive: { backgroundColor: '#2ed573' },
-  optionText: { fontSize: 20, fontWeight: '700', color: '#333' },
-  optionTextActive: { color: '#fff' },
-  optionSub: { fontSize: 10, color: '#aaa', marginTop: 2 },
-  optionSubActive: { color: 'rgba(255,255,255,0.8)' },
+  optionBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
+  optionNum: { fontSize: 22, fontWeight: '700', color: c.text },
+  optionNumActive: { color: '#fff' },
+  optionUnit: { fontSize: 11, color: c.textMuted, marginTop: 2 },
+  optionUnitActive: { color: 'rgba(255,255,255,0.8)' },
 
-  preview: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+  previewCard: {
+    width: '100%', backgroundColor: c.card, borderRadius: 18,
+    padding: 20, marginBottom: 16,
+    borderWidth: 1, borderColor: c.border,
   },
-  previewRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
-  previewLabel: { fontSize: 15, color: '#666' },
-  previewValue: { fontSize: 15, color: '#333', fontWeight: '500' },
-  divider: { height: 1, backgroundColor: '#f0f0f0' },
+  previewRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12 },
+  previewLabel: { fontSize: 15, color: c.textSub },
+  previewValue: { fontSize: 15, color: c.text, fontWeight: '500' },
+  divider: { height: 1, backgroundColor: c.border },
 
   note: {
-    backgroundColor: '#f0fdf4',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 32,
+    width: '100%', backgroundColor: c.primaryBg,
+    borderRadius: 12, padding: 16, marginBottom: 32,
+    borderWidth: 1, borderColor: c.primary + '40',
   },
-  noteText: { fontSize: 13, color: '#555', lineHeight: 20 },
+  noteText: { fontSize: 13, color: c.textSub, lineHeight: 20 },
 
   startBtn: {
-    backgroundColor: '#2ed573',
-    borderRadius: 28,
-    paddingVertical: 18,
-    alignItems: 'center',
-    shadowColor: '#2ed573',
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    width: '100%', backgroundColor: c.primary, borderRadius: 28,
+    paddingVertical: 18, alignItems: 'center',
   },
   startBtnDisabled: { opacity: 0.6 },
   startBtnText: { fontSize: 18, fontWeight: '700', color: '#fff' },

@@ -1,0 +1,21 @@
+# Expo
+.expo/
+dist/
+web-build/
+
+# Dependencies
+node_modules/
+
+# Native
+android/
+ios/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.iml
+
+# Temp
+*.log
+package-lock.json

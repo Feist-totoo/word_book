@@ -1,52 +1,88 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 
+import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { initDB, loadWordsFromJSON, getSetting } from './src/database/db';
 
-import SetupScreen from './src/screens/SetupScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import StudyScreen from './src/screens/StudyScreen';
-import StatsScreen from './src/screens/StatsScreen';
+import SetupScreen    from './src/screens/SetupScreen';
+import HomeScreen     from './src/screens/HomeScreen';
+import StudyScreen    from './src/screens/StudyScreen';
+import StatsScreen    from './src/screens/StatsScreen';
+import WordListScreen from './src/screens/WordListScreen';
+
+SplashScreen.preventAutoHideAsync();
 
 const Stack = createStackNavigator();
-const Tab = createBottomTabNavigator();
+const Tab   = createBottomTabNavigator();
 
 function MainTabs() {
+  const { colors: c, resolvedScheme } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          const icons = {
-            Home: focused ? 'home' : 'home-outline',
-            Stats: focused ? 'bar-chart' : 'bar-chart-outline',
+          const map = {
+            Home:     focused ? 'home'      : 'home-outline',
+            Stats:    focused ? 'bar-chart' : 'bar-chart-outline',
+            WordList: focused ? 'book'      : 'book-outline',
           };
-          return <Ionicons name={icons[route.name]} size={size} color={color} />;
+          return <Ionicons name={map[route.name]} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#2ed573',
-        tabBarInactiveTintColor: '#bbb',
+        tabBarActiveTintColor:   c.primary,
+        tabBarInactiveTintColor: c.textMuted,
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopColor: '#f0f0f0',
+          backgroundColor: c.tabBar,
+          borderTopColor:  c.tabBorder,
           height: 60,
           paddingBottom: 8,
         },
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: '首页' }} />
-      <Tab.Screen name="Stats" component={StatsScreen} options={{ title: '统计' }} />
+      <Tab.Screen name="Home"     component={HomeScreen}     options={{ title: '首页' }} />
+      <Tab.Screen name="Stats"    component={StatsScreen}    options={{ title: '统计' }} />
+      <Tab.Screen name="WordList" component={WordListScreen} options={{ title: '单词库' }} />
     </Tab.Navigator>
   );
 }
 
-export default function App() {
-  const [ready, setReady] = useState(false);
+function RootNavigator({ hasSetup }) {
+  const { colors: c, resolvedScheme } = useTheme();
+
+  const navTheme = resolvedScheme === 'dark'
+    ? { ...DarkTheme,    colors: { ...DarkTheme.colors,    background: c.bg, card: c.card, border: c.border } }
+    : { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: c.bg, card: c.card, border: c.border } };
+
+  return (
+    <NavigationContainer theme={navTheme}>
+      <StatusBar style={c.statusBar} />
+      <Stack.Navigator
+        initialRouteName={hasSetup ? 'Main' : 'Setup'}
+        screenOptions={{ headerShown: false, animationEnabled: true }}
+      >
+        <Stack.Screen name="Setup" component={SetupScreen} />
+        <Stack.Screen name="Main"  component={MainTabs} />
+        <Stack.Screen
+          name="Study"
+          component={StudyScreen}
+          options={{ presentation: 'card', gestureEnabled: true }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+function AppContent() {
+  const { colors: c } = useTheme();
+  const [ready, setReady]       = useState(false);
   const [hasSetup, setHasSetup] = useState(false);
   const [initError, setInitError] = useState(null);
 
@@ -62,67 +98,48 @@ export default function App() {
         setInitError(e.message);
       } finally {
         setReady(true);
+        await SplashScreen.hideAsync();
       }
     })();
   }, []);
 
   if (!ready) {
     return (
-      <View style={styles.splash}>
-        <Text style={styles.splashTitle}>📖</Text>
-        <Text style={styles.splashText}>墨墨背单词</Text>
-        <ActivityIndicator size="large" color="#2ed573" style={{ marginTop: 32 }} />
-        <Text style={styles.splashSub}>加载词库中…</Text>
+      <View style={[styles.splash, { backgroundColor: c.bg }]}>
+        <Text style={styles.splashIcon}>📖</Text>
+        <Text style={[styles.splashTitle, { color: c.text }]}>墨墨背单词</Text>
+        <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 32 }} />
+        <Text style={[styles.splashSub, { color: c.textMuted }]}>加载词库中…</Text>
       </View>
     );
   }
 
   if (initError) {
     return (
-      <View style={styles.splash}>
-        <Text style={{ color: '#ff7675', fontSize: 16, textAlign: 'center', padding: 32 }}>
+      <View style={[styles.splash, { backgroundColor: c.bg }]}>
+        <Text style={{ color: c.danger, fontSize: 16, textAlign: 'center', padding: 32 }}>
           启动失败：{initError}
         </Text>
       </View>
     );
   }
 
+  return <RootNavigator hasSetup={hasSetup} />;
+}
+
+export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="dark" />
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false, animationEnabled: true }}>
-          {!hasSetup ? (
-            <Stack.Screen name="Setup" component={SetupScreen} />
-          ) : (
-            <>
-              <Stack.Screen name="Main" component={MainTabs} />
-              <Stack.Screen
-                name="Study"
-                component={StudyScreen}
-                options={{ presentation: 'card', gestureEnabled: true }}
-              />
-              <Stack.Screen
-                name="Setup"
-                component={SetupScreen}
-                options={{ presentation: 'modal' }}
-              />
-            </>
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  splash: {
-    flex: 1,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  splashTitle: { fontSize: 64, marginBottom: 8 },
-  splashText: { fontSize: 24, fontWeight: '700', color: '#222' },
-  splashSub: { fontSize: 14, color: '#aaa', marginTop: 10 },
+  splash: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  splashIcon:  { fontSize: 64, marginBottom: 8 },
+  splashTitle: { fontSize: 24, fontWeight: '700' },
+  splashSub:   { fontSize: 14, marginTop: 10 },
 });

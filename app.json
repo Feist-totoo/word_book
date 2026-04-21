@@ -2,32 +2,32 @@
   "expo": {
     "name": "墨墨背单词",
     "slug": "vocab-app",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "version": "2.0.0",
+    "orientation": "default",
+    "newArchEnabled": true,
+    "userInterfaceStyle": "automatic",
     "splash": {
-      "backgroundColor": "#2ed573"
+      "backgroundColor": "#2ed573",
+      "resizeMode": "contain"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#2ed573"
       },
-      "package": "com.vocabapp.learn",
-      "permissions": []
+      "package": "com.vocabapp.learn"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.vocabapp.learn"
     },
     "plugins": [
-      [
-        "expo-sqlite",
-        {
-          "enableFTS": true
-        }
-      ]
-    ]
+      "expo-sqlite",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d3975ed5-1166-47dc-a3df-b42a3b274654"
+      }
+    }
   }
 }
