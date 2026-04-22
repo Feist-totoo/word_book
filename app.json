@@ -6,12 +6,15 @@
     "orientation": "default",
     "newArchEnabled": true,
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash-icon.png",
       "backgroundColor": "#2ed573",
       "resizeMode": "contain"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2ed573"
       },
       "package": "com.vocabapp.learn"
@@ -22,7 +25,14 @@
     },
     "plugins": [
       "expo-sqlite",
-      "expo-font"
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#2ed573",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ]
     ],
     "extra": {
       "eas": {
